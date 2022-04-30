@@ -1,8 +1,10 @@
-# coinbase-tax-collector
-Looks at your Coinbase transactions csv file and finds your taxable events.
+# Coinbase Tax Collector
+Looks at your Coinbase transactions csv file and finds all your taxable events.
 
 ## Setup
-Install the dependencies in the requirements.txt file using pip. Run the below command from your projects root directory.
+This project was developed using Python 3.10.
+
+Install the dependencies in the requirements.txt file using `pip`. Run the below command from your projects root directory.
 ```sh
 $ > pip install -r requirements.txt
 ```
