@@ -127,3 +127,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# venv
+Scripts/
+Lib/
+Include/
+pyvenv.cfg
+
+*.csv
+algo_transactions.txt
