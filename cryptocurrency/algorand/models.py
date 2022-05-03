@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 from itertools import groupby
+from operator import contains
 from ..common import TaxableTransaction, CryptoAccount, CryptoAssetBalance
 
 
@@ -45,9 +46,9 @@ class AlgorandTransaction(TaxableTransaction):
 class AlgorandAccount(CryptoAccount):
 	def __init__(self, address, tax_method=0) -> None:
 		super().__init__(tax_method)
-		self.address = address
-		self.transactions = []
-		self.groupedTxns = []
+		self.address: str = address
+		self.transactions: list[AccountTransaction] = []
+		self.groupedTxns: list[TransactionGroup] = []
 
 	def load_from_csv(self, filepath):
 		"""
@@ -76,7 +77,37 @@ class TransactionGroup:
 		self.group = group
 		self.transactions = transactions
 
+	def group_by_type(self):
+		grouped = dict()
+		for key,result in groupby(self.transactions, key=lambda txn: txn.txnType):
+			grouped[key] = result #list(result)
+		return grouped
+
 	def convert_to_tax_event(self):
 		print("-----------")
 		print(self.group)
 		print(len(self.transactions))
+
+class Strategy:
+	def can_handle(self, txnGroup: TransactionGroup):
+		return False
+
+class YieldlyStrategy(Strategy):
+	def __init__(self) -> None:
+		super().__init__()
+		self.applicationId = 233725850
+
+	def can_handle(self, txnGroup: TransactionGroup):
+		txns = txnGroup.group_by_type()
+		if contains(txns, 'appl'):
+			for txn in txns:
+				innerTxn = txn.getTransaction()
+				if innerTxn['application-id'] == self.applicationId:
+					return True
+		return False
+
+class GroupAnalyzer:
+	"""Look at the group of transactions and try to pinpoint if
+	a taxable transaction happened."""
+	def __init__(self, txnGroup: TransactionGroup) -> None:
+		self.txnGroup = txnGroup
