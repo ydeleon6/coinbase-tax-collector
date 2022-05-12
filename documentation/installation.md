@@ -26,7 +26,7 @@ $ > python3 --version
 ## Install dependencies
 
 
-## 1. Install all dependencies.
+### 1. Install all dependencies.
 
 Type this command in the terminal:
 
