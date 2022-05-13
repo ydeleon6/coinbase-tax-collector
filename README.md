@@ -11,7 +11,12 @@ $ > pip install -r requirements.txt
 
 ## How it works
 
-Pass the file path to your coinubase csv as the first argument.
+Pass the file path to your coinubase csv as the first argument and the cost method as the second argument.
+Your choices for cost method are either LIFO or FIFO.
+
 ```sh
-$ > python coinbase-tax-collector.py ./AllCoinbaseTransactions.csv
+$ > python coinbase-tax-collector.py ./capital-gains-test.csv LIFO
 ```
+
+The included test csv matches a couple examples described here
+* https://coinledger.io/blog/cryptocurrency-tax-calculations-fifo-and-lifo-costing-methods-explained
