@@ -17,7 +17,7 @@ Go to [this page](https://www.python.org/downloads/) to download the latest Pyth
 
 Run the installer when the download is complete.
 
-Verify that Python was installed by entering this command in the terminal:
+Verify that Python was installed by copying and pasting this command in the terminal:
 
 ```sh
 $ > python3 --version
@@ -28,7 +28,7 @@ $ > python3 --version
 
 ### 1. Install all dependencies.
 
-Type this command in the terminal:
+Copy and paste this command in the terminal:
 
 ```sh
 $ > python3 -m pip install -r requirements.txt
