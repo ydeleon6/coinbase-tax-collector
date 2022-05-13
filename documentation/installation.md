@@ -1,6 +1,6 @@
 # Installation for macOS 
 
-Coinbase Tax Collector is a Python script that can be installed on macOS, provided that the requirements are met.
+Coinbase Tax Collector is a Python script that can be installed on macOS.
 
 ## Requirements
 
@@ -11,13 +11,13 @@ Coinbase Tax Collector is a Python script that can be installed on macOS, provid
 
 ### 1. Install the latest version of Python.
 
-Since macOS 10.8, Python 2 comes pre-installed on Mac computers. 
+Since macOS 10.8, Python 2 comes pre-installed on Mac computers. Go to [this page](https://www.python.org/downloads/) to download the latest Python version. 
 
-Go to [this page](https://www.python.org/downloads/) to download the latest Python version. 
+a. Download the latest Python version.
 
-Run the installer when the download is complete.
+b. Run the installer when the download is complete.
 
-Verify that Python was installed by copying and pasting this command in the terminal:
+c. Verify that Python 3 was installed by copying and pasting this command in the terminal:
 
 ```sh
 $ > python3 --version
@@ -28,7 +28,7 @@ $ > python3 --version
 
 ### 1. Install all dependencies.
 
-Copy and paste this command in the terminal:
+a. Copy and paste this command in the terminal:
 
 ```sh
 $ > python3 -m pip install -r requirements.txt
