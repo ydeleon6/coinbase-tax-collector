@@ -17,9 +17,9 @@ See [Installation](https://github.com/mdoming10/coinbase-tax-collector/blob/main
 
 2. Download your Coinbase transaction history report CSV.
 
-    a. Download your Coinbase CSV. See [this article](https://help.coinbase.com/en/commerce/managing-account/transaction-reporting#download-reports) for step-by-step instructions on downloading your Coinbase CSV.
+    a. Download your Coinbase CSV by following the step-by-step instructions in [this article](https://help.coinbase.com/en/commerce/managing-account/transaction-reporting#download-reports).
 
-    b. Take note of the file path of your Coinbase CSV.
+    b. Note the file path of your Coinbase CSV.
 
 3. Run the Coinbase Tax Collector script.
 
