@@ -13,7 +13,7 @@ Coinbase Tax Collector is a Python script that can be installed on macOS.
 
     a. Download the latest Python version.
         
-        Since macOS 10.8, Python 2 comes pre-installed on Mac computers. Go to [this page](https://www.python.org/downloads/) to download the latest Python version.
+    Since macOS 10.8, Python 2 comes pre-installed on Mac computers. Go to [this page](https://www.python.org/downloads/) to download the latest Python version.
 
     b. Run the installer when the download is complete.
 
