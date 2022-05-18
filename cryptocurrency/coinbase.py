@@ -1,7 +1,6 @@
 import re
 import csv
-from datetime import datetime
-from .utils import FIFO, Purchase, PurchasesQueue
+from .utils import FIFO, Purchase, PurchasesQueue, TaxableSale
 
 
 class CoinbaseTransaction:
@@ -58,6 +57,8 @@ class CryptoAssetBalance:
 
 
 class CoinbaseAccount:
+	sales: list[TaxableSale]
+	income: list[TaxableSale]
 	"""Tracks your total coinbase history and all the CryptoCurrency balances."""
 	def __init__(self, tax_method = FIFO) -> None:
 		self.balances = dict()
@@ -72,11 +73,6 @@ class CoinbaseAccount:
 			assetBalance = CryptoAssetBalance(assetName, self.tax_method)
 			self.balances[assetName] = assetBalance
 		return assetBalance
-
-	def _formatTimeString(self, timestr):
-		"""Format the timestamp into mm/DD/YYYY HH:MM:SS format."""
-		poop = datetime.strptime(timestr,'%Y-%m-%dT%H:%M:%SZ')
-		return poop.strftime("%m/%d/%Y %H:%M")
 
 	def trackTransaction(self, txn: CoinbaseTransaction):
 		"""Track the transaction and adjust any running totals, quantities, etc as necessary."""
@@ -101,7 +97,7 @@ class CoinbaseAccount:
 		"""Adjust balance from the current buy transaction."""
 		assetBalance = self._getBalance(txn.assetName)
 		assetBalance.balance += txn.quantity
-		assetBalance.lastAcquiredDate = self._formatTimeString(txn.timestamp)
+		assetBalance.lastAcquiredDate = txn.timestamp
 		assetBalance.lastKnownPurchasePrice = round(txn.spotPriceAtSale, 3)
 		assetBalance.purchases.enqueue(Purchase(txn.spotPriceAtSale, txn.quantity, txn.subtotal))
 
@@ -111,28 +107,29 @@ class CoinbaseAccount:
 		costbasis = assetBalance.purchases.getCostBasis(txn.quantity) + txn.fees
 		gains = txn.total - costbasis
 		sale = {
-			'DateSold': self._formatTimeString(txn.timestamp),
-			'LastAcquired': assetBalance.lastAcquiredDate,
-			'LastPurchasePrice': assetBalance.lastKnownPurchasePrice,
-			'Quantity': txn.quantity,
-			'Asset': txn.assetName,
-			'SpotPrice': txn.spotPriceAtSale,
-			'OriginalCost': txn.subtotal,
-			'Currency': txn.spotPriceCurrency,
-			'CostBasis': costbasis,
-			'Total': txn.total,
-			'Gains': round(gains, 2),
-			'Fees': txn.fees,
+			'dateSold': txn.timestamp,
+			'lastAcquired': assetBalance.lastAcquiredDate,
+			'lastPurchasePrice': assetBalance.lastKnownPurchasePrice,
+			'quantity': txn.quantity,
+			'asset': txn.assetName,
+			'spotPrice': txn.spotPriceAtSale,
+			'originalCost': txn.subtotal,
+			'currency': txn.spotPriceCurrency,
+			'costBasis': costbasis,
+			'total': txn.total,
+			'gains': gains,
+			'fees': txn.fees,
 		}
-		self.sales.append(sale)
+		self.sales.append(TaxableSale(**sale))
 		assetBalance.balance -= txn.quantity
 
 	def _handleIncome(self, txn: CoinbaseTransaction):
 		"""Adjust balance based on the amount received from Coinbase."""
 		assetBalance = self._getBalance(txn.assetName)
 		assetBalance.balance += txn.quantity
+		assetBalance.lastAcquiredDate = txn.timestamp
 		income = {
-			'DateReceived': self._formatTimeString(txn.timestamp),
+			'DateReceived': txn.timestamp,
 			'Quantity': txn.quantity,
 			'Asset': txn.assetName,
 			'SpotPrice': txn.spotPriceAtSale,
@@ -153,8 +150,7 @@ class CoinbaseAccount:
 		"""Adjust balance based on the amount received into Coinbase from outside."""
 		assetBalance = self._getBalance(txn.assetName)
 		assetBalance.balance += txn.quantity
-		assetBalance.lastAcquiredDate = self._formatTimeString(txn.timestamp)
-		# assetBalance.lastKnownPurchasePrice = round(txn.spotPriceAtSale, 3) # You need to determine if it's your wallet. If not, track this. Else 
+		assetBalance.lastAcquiredDate = txn.timestamp
 		assetBalance.purchases.enqueue(Purchase(txn.spotPriceAtSale, txn.quantity, 0.0))
 
 	def load_transactions(self, csvFilePath):
@@ -177,3 +173,9 @@ class CoinbaseAccount:
 
 		for txn in self.transactions:
 			self.trackTransaction(txn)
+
+	def calculateCapitalGains(self):
+		totalGains = 0
+		for sale in self.sales:
+			totalGains += sale.gains
+		return round(totalGains, 2)
