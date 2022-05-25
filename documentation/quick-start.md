@@ -39,5 +39,5 @@ See [Installation](https://github.com/mdoming10/coinbase-tax-collector/blob/main
 
     a. Review output in the terminal.
     
-    b. Alternatively, CTC will create a new CSV with your calculated value titled taxable-events.csv. Open the output CSV to review the total caculated capital gain or loss value in column K.
+    b. Alternatively, CTC will create a new CSV with your calculated value titled taxable-events.csv. Open the output CSV and see column K.
 
