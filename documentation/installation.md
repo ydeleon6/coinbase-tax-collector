@@ -21,8 +21,13 @@ Coinbase Tax Collector is a Python script that can be installed on macOS.
     $ > python3 --version
     ```
 
+## Fork and Clone the Coinbase Tax Collector Repository.
+
+1. Fork and clone the repository by following these [step-by-step instructions](https://docs.github.com/en/get-started/quickstart/fork-a-repo#forking-a-repository).
+
 ## Install dependencies
 
+1. Enter the Coinbase Tax Collector's directory on your computer. 
 
 2. Install all dependencies.
 

@@ -1,10 +1,12 @@
 # Quickstart for macOS
 
-Coinbase Tax Collector is a Python script that reads your Coinbase transaction history report CSV file, identifies all taxable transactions, and calculates your capital gains or losses. If you are a macOS user, this quickstart will help you use Coinbase Tax Collector to get the information you need to complete Form 1099-B when filing your taxes.
+Coinbase Tax Collector (CTC) is a Python script that reads your Coinbase transaction history report CSV file, identifies all taxable transactions, and calculates your capital gains or losses. It allows you to select from among two accounting methods, LIFO or FIFO, for calculating your tax responsiblity.
+
+If you are a macOS user, this quickstart will help you use CTC to get the information you need to complete Form 1099-B when filing your taxes.
 
 ## Prerequisites
 
-Coinbase Tax Collector requires the following:
+CTC requires the following:
 
 * Python version 3.10 or newer
 * Dependencies from the [requirements.txt file](https://github.com/ydeleon6/coinbase-tax-collector/blob/main/requirements.txt)
@@ -21,15 +23,17 @@ See [Installation](https://github.com/mdoming10/coinbase-tax-collector/blob/main
 
     b. Note the file path of your Coinbase CSV.
 
-3. Run the Coinbase Tax Collector script.
+3. Run the CTC script.
 
-    a. Copy and paste the code below into the terminal:
+    a. Decide which accounting method to use. Your options are either LIFO or FIFO.
+    
+    b. Copy and paste the code below into the terminal:
 
     ```sh
-    $ > python3 coinbase-tax-collector.py <file path of your CSV file>
+    $ > python3 coinbase-tax-collector.py <file path of your CSV file> <accounting method>
     ```
 
-    b. After running the code above, Coinbase Tax Collector will produce a new CSV file.
+    c. After running the code above, Coinbase Tax Collector will produce a new CSV file.
 
 4.  Review your capital gain or loss value in the output CSV.
 
