@@ -74,8 +74,7 @@ class PurchasesQueue(Queue):
 		quantityRetrieved = 0.0
 		quantityRemaining = quantity
 
-		print("Total {} - {}".format(self.assetName, self.total_assets))
-		#TODO: Improve rounding? I'm capping at 10 to avoid rounding issues.
+		#TODO: Improve rounding? I'm capping at 10 decimal places to avoid rounding issues.
 		while quantityRetrieved < quantity:
 			purchase = self.peek()
 			if purchase is None:
