@@ -30,14 +30,14 @@ See [Installation](https://github.com/mdoming10/coinbase-tax-collector/blob/main
     b. Copy and paste the code below into the terminal:
 
     ```sh
-    $ > python3 coinbase-tax-collector.py <file path of your CSV file> <accounting method>
+    $ > python3 coinbase-tax-collector.py <file path of your Coinbase CSV file> <accounting method>
     ```
 
-    c. After running the code above, Coinbase Tax Collector will produce a new CSV file.
+    c. After running the code above, CTC will print results in the terminal and produce a new CSV file titled taxable-events.csv.
 
 4.  Review your capital gain or loss value.
 
     a. Review output in the terminal.
     
-    b. Alternatively, CTC will create a new CSV with your calculated value titled taxable-events.csv. Open the output CSV and see column K.
+    b. Alternatively, review taxable-events.csv. Open the file and see column K.
 
