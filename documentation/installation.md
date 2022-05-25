@@ -21,7 +21,7 @@ Coinbase Tax Collector (CTC) is a Python script that can be installed on macOS.
     $ > python3 --version
     ```
 
-## Fork and clone the CTC Repository.
+## Fork and clone the CTC repository
 
 1. Fork and clone the repository by following these [step-by-step instructions](https://docs.github.com/en/get-started/quickstart/fork-a-repo#forking-a-repository).
 
