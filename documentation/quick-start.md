@@ -35,9 +35,9 @@ See [Installation](https://github.com/mdoming10/coinbase-tax-collector/blob/main
 
     c. After running the code above, Coinbase Tax Collector will produce a new CSV file.
 
-4.  Review your capital gain or loss value in the output CSV.
+4.  Review your capital gain or loss value.
 
-    a. Open the new output CSV file.
-
-    b. Look at [location in spreadsheet?] to review the total caculated capital gain or loss value.
+    a. Review output in the terminal.
+    
+    b. Alternatively, CTC will create a new CSV with your calculated value titled taxable-events.csv. Open the output CSV to review the total caculated capital gain or loss value in column K.
 
