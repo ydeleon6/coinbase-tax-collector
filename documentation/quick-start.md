@@ -30,7 +30,7 @@ See [Installation](https://github.com/mdoming10/coinbase-tax-collector/blob/main
     b. Copy and paste the code below into the terminal:
 
     ```sh
-    $ > python3 coinbase-tax-collector.py <file path of your Coinbase CSV file> <accounting method>
+    $ > python3 coinbase-tax-collector.py <file path of your Coinbase CSV file> <accounting method acronym>
     ```
 
     c. After running the code above, CTC will print results in the terminal and produce a new CSV file titled taxable-events.csv.
