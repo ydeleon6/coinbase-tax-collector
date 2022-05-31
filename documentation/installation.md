@@ -34,5 +34,5 @@ Coinbase Tax Collector (CTC) is a Python script that can be installed on macOS.
     a. Copy and paste this command in the terminal:
 
     ```sh
-    $ > python3 -m pip install -r requirements.txt
+    $ > pip3 install -r requirements.txt
     ```
