@@ -1,6 +1,6 @@
 # Quickstart for macOS
 
-Coinbase Tax Collector (CTC) is a Python script that reads your Coinbase transaction history report CSV file, identifies all taxable transactions, and calculates your capital gains or losses. It allows you to select from among two accounting methods, LIFO or FIFO, for calculating your tax responsiblity.
+Coinbase Tax Collector (CTC) is a Python script that reads your Coinbase transaction history report CSV file, identifies all taxable transactions, and calculates your capital gains or losses. It allows you to select from among two accounting methods for calculating your tax responsiblity: Last-In, First-Out (LIFO) or First-In, First-Out (FIFO).
 
 If you are a macOS user, this quickstart will help you use CTC to get the information you need to complete Form 1099-B when filing your taxes.
 
