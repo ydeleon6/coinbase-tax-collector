@@ -1,43 +1,73 @@
 # Quickstart for macOS
 
-Coinbase Tax Collector (CTC) is a Python script that reads your Coinbase transaction history report CSV file, identifies all taxable transactions, and calculates your capital gains or losses. It allows you to select from among two accounting methods for calculating your tax responsiblity: Last-In, First-Out (LIFO) or First-In, First-Out (FIFO).
+## Overview
 
-If you are a macOS user, this quickstart will help you use CTC to get the information you need to complete Form 1099-B when filing your taxes.
+This quickstart is intended for macOS users who need to use Coinbase Tax Collector (CTC) to calculate their capital gain or loss value to complete Form 1099-B during tax season. Users should understand how to use the command line to enter commands and navigate directories. 
 
-## Prerequisites
+This quickstart covers the following:
+
+- [Requirements](#requirements)
+- [Install and Verify Python](#install-and-verify-python)
+- [Fork and Clone the CTC Repository](#fork-and-clone-the-ctc-repository)
+- [Install Dependencies](#install-dependencies)
+- [Run the Script](#run-the-script)
+
+## Requirements
 
 CTC requires the following:
 
 * Python version 3.10 or newer
-* Dependencies from the [requirements.txt file](https://github.com/ydeleon6/coinbase-tax-collector/blob/main/requirements.txt)
 
-See [Installation](https://github.com/mdoming10/coinbase-tax-collector/blob/main/documentation/installation.md) for more details.
+## Install and Verify Python
 
-## Instructions
+1. Install the latest version of Python.
 
-1. Install all [prerequisites](https://github.com/mdoming10/coinbase-tax-collector/blob/main/documentation/installation.md).
+    a. Download the latest Python version [here](https://www.python.org/downloads/).
 
-2. Download your Coinbase transaction history report CSV.
+    b. Run the installer when prompted.
 
-    a. Download your Coinbase CSV by following the step-by-step instructions in [this article](https://help.coinbase.com/en/commerce/managing-account/transaction-reporting#download-reports).
+    c. Enter this command in the terminal to verify Python 3 was installed:
+
+    ```sh
+    $ > python3 --version
+    ```
+
+## Fork and Clone the CTC Repository
+
+1. Fork and clone the repository by following these [step-by-step instructions](https://docs.github.com/en/get-started/quickstart/fork-a-repo#forking-a-repository).
+
+## Install Dependencies
+
+1. Navigate to the CTC's directory on your computer. 
+
+2. Install all dependencies in the requirements.txt file by entering this command in the terminal:
+
+    ```sh
+    $ > pip3 install -r requirements.txt
+    ```
+
+## Run the Script
+
+1. Download your Coinbase transaction history report CSV.
+
+    a. Download your Coinbase CSV by following the step-by-step instructions in [this help article from Coinbase](https://help.coinbase.com/en/commerce/managing-account/transaction-reporting#download-reports).
 
     b. Note the file path of your Coinbase CSV.
 
-3. Run the CTC script.
+2. Run the CTC script.
 
     a. Decide which accounting method to use. Your options are either LIFO or FIFO.
     
-    b. Copy and paste the code below into the terminal:
+    b. Enter the command below into the terminal:
 
     ```sh
-    $ > python3 coinbase-tax-collector.py <file path of your Coinbase CSV file> <accounting method acronym>
+    $ > python3 coinbase-tax-collector.py <file path of your Coinbase CSV file> <FIFO | LIFO>
     ```
 
-    c. After running the code above, CTC will print results in the terminal and produce a new CSV file titled taxable-events.csv.
+    Example:
 
-4.  Review your capital gain or loss value.
+    ```sh
+    $ > python3 coinbase-tax-collector.py ./capital-gains-test.csv FIFO
+    ```
 
-    a. Review output in the terminal.
-    
-    b. Alternatively, review taxable-events.csv. Open the file and see column K.
-
+    c. After running the code above, CTC will print results in the terminal and produce a new CSV file named **taxable-events.csv**.
