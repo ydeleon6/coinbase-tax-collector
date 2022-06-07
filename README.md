@@ -6,7 +6,9 @@ This project was developed using Python 3.10.
 
 ## Documentation
 
-- [Quickstart macOS]() 
+Users who are comfortable using the command line to navigate directories and install software can refer to the Quickstarts for getting started with CTC. Users with little to no comfort with the command line should refer to the Getting Started Guides.
+
+- [Quickstart macOS](./documentation/quick-start.md) 
 - Quickstart Windows (forthcoming)
 - Getting Started Guide macOS (forthcoming)
 - Getting Started Guide Windows (forthcoming)

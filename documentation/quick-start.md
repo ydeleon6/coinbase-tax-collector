@@ -2,7 +2,7 @@
 
 ## Overview
 
-This quickstart is intended for macOS users who need to use Coinbase Tax Collector (CTC) to calculate their capital gain or loss value to complete Form 1099-B during tax season. Users should understand how to use the command line to enter commands and navigate directories. 
+This quickstart is intended for macOS users who need to use Coinbase Tax Collector (CTC) to calculate their capital gain or loss value to complete Form 1099-B during tax season. Users should understand how to use the command line to install software and navigate directories. 
 
 This quickstart covers the following:
 
