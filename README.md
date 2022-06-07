@@ -6,10 +6,10 @@ This project was developed using Python 3.10.
 
 ## Documentation
 
-[Quickstart macOS]() 
-Quickstart Windows (forthcoming)
-Getting Started Guide macOS (forthcoming)
-Getting Started Guide Windows (forthcoming)
+- [Quickstart macOS]() 
+- Quickstart Windows (forthcoming)
+- Getting Started Guide macOS (forthcoming)
+- Getting Started Guide Windows (forthcoming)
 
 ## License
 
