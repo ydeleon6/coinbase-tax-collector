@@ -26,9 +26,9 @@ CTC requires the following:
 
 3. Verify that Python 3 was installed by entering the command below into Terminal:
 
-```sh
-$ > python3 --version
-```
+    ```sh
+    $ > python3 --version
+    ```
 
 ## Fork and Clone the CTC Repository
 
@@ -58,14 +58,14 @@ $ > python3 --version
     
     b. Enter the command below into Terminal:
 
-    ```sh
-    $ > python3 coinbase-tax-collector.py <file path of your Coinbase CSV file> <LIFO | FIFO>
-    ```
+        ```sh
+        $ > python3 coinbase-tax-collector.py <file path of your Coinbase CSV file> <LIFO | FIFO>
+        ```
 
     Example:
 
-    ```sh
-    $ > python3 coinbase-tax-collector.py ./capital-gains-test.csv FIFO
-    ```
+        ```sh
+        $ > python3 coinbase-tax-collector.py ./capital-gains-test.csv FIFO
+        ```
 
     c. After running the code above, CTC will print results in Terminal and produce a new CSV file named **taxable-events.csv**.
