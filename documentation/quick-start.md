@@ -58,14 +58,14 @@ CTC requires the following:
     
     b. Enter the command below into Terminal:
 
-        ```
-        $ > python3 coinbase-tax-collector.py <file path of your Coinbase CSV file> <LIFO | FIFO>
-        ```
+    ```sh
+    $ > python3 coinbase-tax-collector.py <file path of your Coinbase CSV file> <LIFO | FIFO>
+    ```
 
     Example:
 
-        ```
-        $ > python3 coinbase-tax-collector.py ./capital-gains-test.csv FIFO
-        ```
+    ```sh
+    $ > python3 coinbase-tax-collector.py ./capital-gains-test.csv FIFO
+    ```
 
     c. After running the code above, CTC will print results in Terminal and produce a new CSV file named **taxable-events.csv**.
