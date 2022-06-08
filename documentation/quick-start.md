@@ -2,9 +2,9 @@
 
 ## Overview
 
-This quickstart is intended for macOS users who need to use Coinbase Tax Collector (CTC) to calculate their capital gain or loss value to complete Form 1099-B during tax season. Users should understand how to use the command line to install software and navigate directories. 
+This quickstart is intended for macOS users who understand how to use Mac Terminal to install software and navigate directories. It will cover how to install the Coinbase Tax Collector (CTC) and caculate your capital gains or losses.
 
-This quickstart covers the following:
+The quickstart covers the following:
 
 - [Requirements](#requirements)
 - [Install and Verify Python](#install-and-verify-python)
@@ -20,17 +20,15 @@ CTC requires the following:
 
 ## Install and Verify Python
 
-1. Install the latest version of Python.
+1. Download the latest version of Python [here](https://www.python.org/downloads/).
 
-    a. Download the latest Python version [here](https://www.python.org/downloads/).
+2. Run the installer when prompted.
 
-    b. Run the installer when prompted.
+3. Verify that Python 3 was installed by entering the command below into Terminal:
 
-    c. Enter this command in the terminal to verify Python 3 was installed:
-
-    ```sh
-    $ > python3 --version
-    ```
+```sh
+$ > python3 --version
+```
 
 ## Fork and Clone the CTC Repository
 
@@ -40,7 +38,7 @@ CTC requires the following:
 
 1. Navigate to the CTC's directory on your computer. 
 
-2. Install all dependencies in the requirements.txt file by entering this command in the terminal:
+2. Install all dependencies in the requirements.txt file by entering this command in Terminal:
 
     ```sh
     $ > pip3 install -r requirements.txt
@@ -58,10 +56,10 @@ CTC requires the following:
 
     a. Decide which accounting method to use. Your options are either LIFO or FIFO.
     
-    b. Enter the command below into the terminal:
+    b. Enter the command below into Terminal:
 
     ```sh
-    $ > python3 coinbase-tax-collector.py <file path of your Coinbase CSV file> <FIFO | LIFO>
+    $ > python3 coinbase-tax-collector.py <file path of your Coinbase CSV file> <LIFO | FIFO>
     ```
 
     Example:
@@ -70,4 +68,4 @@ CTC requires the following:
     $ > python3 coinbase-tax-collector.py ./capital-gains-test.csv FIFO
     ```
 
-    c. After running the code above, CTC will print results in the terminal and produce a new CSV file named **taxable-events.csv**.
+    c. After running the code above, CTC will print results in Terminal and produce a new CSV file named **taxable-events.csv**.
