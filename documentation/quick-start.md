@@ -38,7 +38,7 @@ CTC requires the following:
 
 1. Navigate to the CTC's directory on your computer. 
 
-2. Install all dependencies in the requirements.txt file by entering this command in Terminal:
+2. Install all dependencies in the requirements.txt file by entering this command into Terminal:
 
     ```sh
     $ > pip3 install -r requirements.txt
