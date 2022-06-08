@@ -58,13 +58,13 @@ CTC requires the following:
     
     b. Enter the command below into Terminal:
 
-        ```sh
+        ```
         $ > python3 coinbase-tax-collector.py <file path of your Coinbase CSV file> <LIFO | FIFO>
         ```
 
     Example:
 
-        ```sh
+        ```
         $ > python3 coinbase-tax-collector.py ./capital-gains-test.csv FIFO
         ```
 
