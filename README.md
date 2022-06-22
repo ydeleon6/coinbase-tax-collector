@@ -20,7 +20,7 @@ A sale, conversion, or expense resulting in a profit is a capital gain, while va
 
 Users who are comfortable using the command line to navigate directories and install software can refer to the Quickstarts for getting started with CTC. Users with little to no comfort with the command line should refer to the Getting Started Guides.
 
-- <a href="./documentation/quick-start.md" target="_blank" rel="noopener noreferrer">Quickstart macOS</a> 
+- [Quickstart macOS](./documentation/quick-start.md)
 - Quickstart Windows (forthcoming)
 - Getting Started Guide macOS (forthcoming)
 - Getting Started Guide Windows (forthcoming)
