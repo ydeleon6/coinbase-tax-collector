@@ -54,7 +54,7 @@ CTC requires the following:
 
 2. Run the CTC script.
 
-    a. Decide which accounting method to use. Your options are either LIFO or FIFO.
+    a. Decide which accounting method to use. Your options are either Last-In, First-Out (LIFO) or First-In, First-Out (FIFO).
     
     b. Enter the command below into Terminal:
 
