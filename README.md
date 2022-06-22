@@ -8,10 +8,10 @@ Those who prefer accounting methods not supported by Coinbase, including Last-In
 
 ## How it Works
 
-CTC is a Python script developed using Python 3.10 that works by reading your Coinbase transaction history report CSV file, identifying taxable transactions, and calculating your capital gains or losses. At a high level, the script determines gains/losses as follows: 
+CTC is a Python script developed using Python 3.10. It works by reading your Coinbase transaction history report CSV file, identifying taxable transactions, and calculating your capital gains or losses. At a high level, the script determines gains/losses as follows: 
 
-1. Identifies how much you originally paid for your cryptocurrency (I.e., the cost basis)
-2. Identifies the value of the cryptocurrency at the time of each taxable event (I.e., sale, conversion, or expense) 
+1. Identifies how much you originally paid for your cryptocurrency (i.e., the cost basis)
+2. Identifies the value of the cryptocurrency at the time of each taxable event (i.e., sale, conversion, or expense) 
 3. Subtracts the cost basis from the sale/conversion/expense price to identify a profit or loss
 
 A sale, conversion, or expense resulting in a profit is a capital gain, while value lost results in a capital loss. CTC further accounts for other factors that affect how capital gain and loss are determined, such as the accounting method you've chosen and the length of time you possessed your cryptocurrency before selling/converting/spending. 
