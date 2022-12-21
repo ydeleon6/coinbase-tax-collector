@@ -1,8 +1,8 @@
 #!/usr/bin/python
-from argparse import ArgumentError
-from operator import contains
 import sys
 import csv
+from argparse import ArgumentError
+from operator import contains
 from cryptocurrency.coinbase import CoinbaseAccount
 from cryptocurrency.utils import FIFO, LIFO
 
@@ -22,7 +22,19 @@ else:
 	taxMethod = LIFO
 
 def formatMoney(amount):
-	return "${:,.2f}".format(amount)
+	isNegative = amount < 0
+	moneyText = "{:,.2f}".format(abs(amount))
+
+	sign = ""
+	if isNegative:
+		sign = "-"
+	return "{}${}".format(sign, moneyText)
+
+def getLossOrGainText(amount):
+	resultAction = "Gains"
+	if amount < 0:
+		resultAction = "Losses"
+	return resultAction
 
 def calculateCoinbaseCapitalGains():
 	account = CoinbaseAccount(tax_method=taxMethod)
@@ -38,6 +50,7 @@ def calculateCoinbaseCapitalGains():
 		for sale in account.sales:
 			totalGains += sale['Gains']
 			# format money amounts for the console.
+			sale['LossOrGain'] = getLossOrGainText(sale['Gains'])
 			sale['LastPurchasePrice']  = formatMoney(sale['LastPurchasePrice'])
 			sale['SpotPrice']  = formatMoney(sale['SpotPrice'])
 			sale['CostBasis']  = formatMoney(sale['CostBasis'])
@@ -50,9 +63,13 @@ def calculateCoinbaseCapitalGains():
 			print("Date {Asset} was last acquired and bought: [{LastAcquired}] {LastPurchasePrice}".format(**sale))
 			print("Cost Basis: {CostBasis} {Currency}".format(**sale))
 			print("Price of {Asset} at Transaction: {SpotPrice} {Currency}".format(**sale))
-			print("You sold {Quantity} of {Asset} for {Total} {Currency} (fees: {Fees}). Gains are {Gains} {Currency}".format(**sale))
+			print("You sold {Quantity} of {Asset} for {Total} {Currency} (fees: {Fees}). {LossOrGain} are {Gains} {Currency}".format(**sale))
 			writer.writerow(sale)
 	return totalGains
 
 totalGains = calculateCoinbaseCapitalGains()
-print("Total Capital Gains: {} USD".format(formatMoney(round(totalGains, 2))))
+resultAction = "Gains"
+if totalGains < 0:
+	resultAction = "Losses"
+print("")
+print("Total Capital {}: {} USD".format(resultAction, formatMoney(round(totalGains, 2))))
