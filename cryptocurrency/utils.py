@@ -5,22 +5,22 @@ WEIGHTED_AVERAGE_METHOD = 3 # Allowed outside the U.S.
 
 class Queue():
 	"""Using Python Lists as a FIFO Queue"""
-	def __init__(self, queueMethod = 0):
+	def __init__(self, queueMethod = FIFO):
 		self.queue = []
 		self.queuingMethod = queueMethod
 
 	def enqueue(self, value):
-		# Inserting to the end of the queue
+		"""Insert an item to the queue."""
 		self.queue.append(value)
 
 	def dequeue(self):
-		# Remove the furthest element from the top,
-		# since the Queue is a FIFO structure
+		"""Remove the furthest item from the start of the queue."""
 		if (self.queuingMethod == FIFO):
 			return self.queue.pop(0)
 		return self.queue.pop() # else return LIFO
 
 	def peek(self):
+		"""Return (but do not remove) the next item in the Queue."""
 		if len(self.queue) == 0:
 			return None
 		if self.queuingMethod == FIFO:
@@ -28,6 +28,7 @@ class Queue():
 		return self.queue[len(self.queue) - 1]
 
 	def length(self):
+		"""The number of items in the Queue."""
 		return len(self.queue)
 
 class Purchase:
@@ -57,7 +58,7 @@ class PurchasesQueue(Queue):
 	def getCostBasis(self, quantity) -> float:
 		"""The price you paid to acquire all these shares."""
 		# You should always be able to get this because you actually
-		# do have a reference for how much you paid for you quantity.
+		# do have a reference for how much you paid for your quantity.
 		# So when you use this for calculating a baseline for a future sale,
 		# All you have to do is figure out how much you're "selling" (e.g. 0.5 algo)
 		# and calculate how much you spent on it, going oldest to newest (FIFO)
@@ -67,8 +68,8 @@ class PurchasesQueue(Queue):
 		if self.length() == 0:
 			raise Exception("How did I acquire {asset} w/o buying it (or income)?".format(asset=self.assetName))
 
-		if self.costBasisSetting == WEIGHTED_AVERAGE_METHOD:
-			return self.getWeightedAverageCostPerShare(quantity)
+		# if self.costBasisSetting == WEIGHTED_AVERAGE_METHOD:
+		# 	return self.getWeightedAverageCostPerShare(quantity)
 
 		totalCostBasis = 0.0
 		quantityRetrieved = 0.0
@@ -81,15 +82,15 @@ class PurchasesQueue(Queue):
 				msg = "Cannot account for {} {} in your purchases/receives".format(quantityRemaining, self.assetName)
 				raise Exception(msg)
 			if purchase.quantity <= quantityRemaining: # if your last/first purchase is a smaller amount than you want, pop it so we can grab the next one.
-				self.dequeue()
-				quantityRetrieved = round(quantityRetrieved + purchase.quantity, 10)
-				quantityRemaining = round(quantityRetrieved - purchase.quantity, 10)
+				purchase = self.dequeue()
+				quantityRetrieved += round(purchase.quantity, 10)
 				totalCostBasis += purchase.subtotal
+				quantityRemaining = quantity - quantityRetrieved
 			else:	# your first/last purchase contained more than you want, so modify it in place.
-				purchase.quantity = round(purchase.quantity - quantity, 2)
-				quantityRetrieved = quantity
+				purchase.quantity = round(purchase.quantity - quantityRemaining, 10)
+				quantityRetrieved += quantityRemaining
+				totalCostBasis = round(totalCostBasis + (quantityRemaining * purchase.pricePerUnit), 10) # TODO: should - fees here too I think.
 				quantityRemaining = 0
-				totalCostBasis = round(totalCostBasis + (quantityRetrieved * purchase.pricePerUnit), 10) # TODO: should - fees here too I think.
 		return totalCostBasis
 
 	# https://www.fool.com/knowledge-center/how-to-calculate-weighted-average-price-per-share.aspx
