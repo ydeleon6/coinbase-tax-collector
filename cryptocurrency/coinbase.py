@@ -56,7 +56,6 @@ class CryptoAssetBalance:
 		self.costBasisSetting =  costBasisSetting
 		self.purchases = PurchasesQueue(assetName, costBasisSetting)
 
-
 class CoinbaseAccount:
 	"""Tracks your total coinbase history and all the CryptoCurrency balances."""
 	def __init__(self, tax_method = FIFO) -> None:
@@ -105,7 +104,7 @@ class CoinbaseAccount:
 		assetBalance.lastKnownPurchasePrice = round(txn.spotPriceAtSale, 3)
 		assetBalance.purchases.enqueue(Purchase(txn.spotPriceAtSale, txn.quantity, txn.subtotal))
 
-	def _handleSaleTxn(self, txn: CoinbaseTransaction):
+	def _handleSaleTxn(self, txn: CoinbaseTransaction) -> dict:
 		"""Adjust balance from the current sale transaction."""
 		assetBalance = self._getBalance(txn.assetName)
 		costbasis = assetBalance.purchases.getCostBasis(txn.quantity) + txn.fees
@@ -126,6 +125,7 @@ class CoinbaseAccount:
 		}
 		self.sales.append(sale)
 		assetBalance.balance -= txn.quantity
+		return sale
 
 	def _handleIncome(self, txn: CoinbaseTransaction):
 		"""Adjust balance based on the amount received from Coinbase."""
@@ -177,3 +177,90 @@ class CoinbaseAccount:
 
 		for txn in self.transactions:
 			self.trackTransaction(txn)
+
+def formatMoney(amount):
+	isNegative = amount < 0
+	moneyText = "{:,.2f}".format(abs(amount))
+
+	sign = ""
+	if isNegative:
+		sign = "-"
+	return "{}${}".format(sign, moneyText)
+
+def getLossOrGainText(amount):
+	resultAction = "Gains"
+	if amount < 0:
+		resultAction = "Losses"
+	return resultAction
+
+class SalesVisitor():
+	"""
+	The base class for visiting the TaxableSales object.
+	"""
+	def accept(self, sale):
+		pass
+
+	def shutdown(self):
+		pass
+
+class CoinbaseTaxCalculator():
+	visitors: list[SalesVisitor]
+	account = CoinbaseAccount
+
+	def __init__(self, account: CoinbaseAccount, visitors) -> None:
+		self.account = account
+		self.visitors = visitors
+
+	def calculate(self):
+		for sale in self.account.sales:
+			self.visit(sale)
+
+	def visit(self, sale: dict):
+		for visitor in self.visitors:
+			visitor.accept(sale)
+
+
+class TaxableSalesCsvWriter(SalesVisitor):
+	"""
+	Write taxable sales to a CSV file.
+	"""
+	def __init__(self, filename, columnNames) -> None:
+		self.output_file = open(filename, 'w')
+		self.writer = csv.DictWriter(self.output_file, fieldnames=columnNames, dialect='unix')
+		self.writer.writeheader()
+
+	def accept(self, sale):
+		self.writer.writerow(sale)
+
+	def shutdown(self):
+		if not self.output_file.closed:
+			self.output_file.close()
+
+class ConsoleOutputWriter(SalesVisitor):
+	"""
+	Output the taxable sale to the console.
+	"""
+	def accept(self, sale):
+		updatedSale = dict(**sale)
+		updatedSale['LossOrGain'] = getLossOrGainText(sale['Gains'])
+		updatedSale['LastPurchasePrice']  = formatMoney(sale['LastPurchasePrice'])
+		updatedSale['SpotPrice']  = formatMoney(sale['SpotPrice'])
+		updatedSale['CostBasis']  = formatMoney(sale['CostBasis'])
+		updatedSale['Total']  = formatMoney(sale['Total'])
+		updatedSale['Gains']  = formatMoney(sale['Gains'])
+		updatedSale['Fees']  = formatMoney(sale['Fees'])
+
+		print()
+		print("Transaction Date: {DateSold}".format(**updatedSale))
+		print("Date {Asset} was last acquired and bought: [{LastAcquired}] {LastPurchasePrice}".format(**updatedSale))
+		print("Cost Basis: {CostBasis} {Currency}".format(**updatedSale))
+		print("Price of {Asset} at Transaction: {SpotPrice} {Currency}".format(**updatedSale))
+		print("You sold {Quantity} of {Asset} for {Total} {Currency} (fees: {Fees}). {LossOrGain} are {Gains} {Currency}"\
+			.format(**updatedSale))
+
+class TotalCapitalGainsTaxCalculator(SalesVisitor):
+	def __init__(self) -> None:
+		self.totalGains = 0.0
+
+	def accept(self, sale):
+		self.totalGains += sale['Gains']
