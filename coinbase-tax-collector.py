@@ -1,10 +1,10 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 import sys
 from argparse import ArgumentError
 from operator import contains
 from cryptocurrency.coinbase import CoinbaseAccount, TaxableSalesCsvWriter, TotalCapitalGainsTaxCalculator,\
 	 ConsoleOutputWriter, CoinbaseTaxCalculator, formatMoney
-from cryptocurrency.utils import FIFO, LIFO
+from cryptocurrency.models import FIFO, LIFO
 
 CSV_OUTPUT_PATH = r'taxable-events.csv'
 
@@ -28,15 +28,18 @@ csvWriter = TaxableSalesCsvWriter(CSV_OUTPUT_PATH, account.sales[0].keys())
 consoleWriter = ConsoleOutputWriter()
 salesCalculator = TotalCapitalGainsTaxCalculator()
 
-visitors = [csvWriter, consoleWriter, salesCalculator]
+decorators = [csvWriter, salesCalculator]
 
-calculator = CoinbaseTaxCalculator(account, visitors)
+calculator = CoinbaseTaxCalculator(account, decorators)
 calculator.calculate()
 
 csvWriter.shutdown()
 
-resultAction = "Gains"
-if salesCalculator.totalGains < 0:
-	resultAction = "Losses"
 print("")
-print("Total Capital {}: {} USD".format(resultAction, formatMoney(round(salesCalculator.totalGains, 2))))
+
+for year in salesCalculator.taxByYear.keys():
+	taxForYear = salesCalculator.taxByYear[year]
+	resultAction = "Gains"
+	if taxForYear < 0:
+		resultAction = "Losses"
+	print("Total Capital {} for {}: {} USD".format(resultAction, year, formatMoney(round(taxForYear, 2))))
