@@ -1,10 +1,13 @@
 import re
+import logging
 from datetime import datetime
 
 FIFO = 0 # First in, first out
 LIFO = 1 # Last in, first out
 SPID_METHOD = 2
 WEIGHTED_AVERAGE_METHOD = 3 # Allowed outside the U.S.
+
+logger = logging.getLogger("models")
 
 class CoinbaseTransaction:
 	"""Represents a transaction in Coinbase."""
@@ -59,11 +62,25 @@ class CryptoAssetBalance:
 	"""Track the current account balance of CryptoCurrency for a given asset."""
 	def __init__(self, assetName, costBasisSetting = 0):
 		self.assetName = assetName
-		self.balance = 0.0
+		self.current_balance = 0.0
 		self.lastAcquiredDate = ''
 		self.lastKnownPurchasePrice = 0
 		self.costBasisSetting =  costBasisSetting
 		self.purchases = PurchasesQueue(assetName, costBasisSetting)
+
+	@property
+	def balance(self):
+		return self.current_balance
+
+	@balance.setter
+	def balance(self, bal):
+		new_balance = self.current_balance + bal
+		if new_balance < 0:
+			logger.warn("Cannot lower %s below 0 by %f", self.assetName, new_balance)
+			raise ValueError("Cannot reduce balance below 0 on Coinbase.")
+		else:
+			logger.warn("Increasing %s balance by %f", self.assetName, bal)
+		self.current_balance += bal
 
 class Queue():
 	"""Using Python Lists as a FIFO Queue"""

@@ -1,5 +1,8 @@
+import logging
 from datetime import datetime
 from cryptocurrency.models import CoinbaseTransaction, PurchasesQueue
+
+logger = logging.getLogger("utils")
 
 
 def formatTimeString(timestamp: datetime):
@@ -38,13 +41,13 @@ def getCostBasis(queue: PurchasesQueue, txn: CoinbaseTransaction) -> float:
 	totalCostBasis = 0.0
 	quantityRetrieved = 0.0
 	quantityRemaining = float(quantity)
-	# print(" ")
+	logger.debug(" ")
 
 	#print("Looking for {} {} amongst {} transactions.".format(quantity, txn.assetName, queue.length))
 
 	while True:
 		purchase = queue.peek()
-		# print("Target {}: Current Total: {}: Amount Left: {}".format(quantity, quantityRetrieved, quantityRemaining))
+		logger.debug("Target {}: Current Total: {}: Amount Left: {}", quantity, quantityRetrieved, quantityRemaining)
 		# just figured out the issue, its possible Coinbase sells _more_ crypto 
 		# than you own to cover spread (e.g. you convert $5 of BCH, if the price 
 		# goes down they'll just enough crypto for you within some tolerance?.)
