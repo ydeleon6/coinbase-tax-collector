@@ -1,7 +1,9 @@
 import csv
-from cryptocurrency.models import CryptoAssetBalance, CoinbaseTransaction, Purchase, FIFO
+import logging
+from cryptocurrency.models import CryptoAssetBalance, CoinbaseTransaction, Purchase, FIFO, CoinbaseProFill, CoinbaseProAccountHistory
 from cryptocurrency.utils import formatMoney, formatTimeString, getLossOrGainText, getCostBasis
 
+logger = logging.getLogger("coinbase")
 
 class CoinbaseAccount:
 	"""Tracks your total coinbase history and all the CryptoCurrency balances."""
@@ -9,6 +11,8 @@ class CoinbaseAccount:
 		self.balances = dict()
 		self.sales = []
 		self.income = []
+		self.transactions = []
+		self.purchases = []
 		self.tax_method = tax_method
 
 	def _getBalance(self, assetName: str):
@@ -45,15 +49,16 @@ class CoinbaseAccount:
 		assetBalance = self._getBalance(txn.assetName)
 		assetBalance.balance += txn.quantity
 		assetBalance.lastAcquiredDate = formatTimeString(txn.timestamp)
-		assetBalance.lastKnownPurchasePrice = round(txn.spotPriceAtSale, 3)
+		assetBalance.lastKnownPurchasePrice = txn.spotPriceAtSale
 		assetBalance.purchases.enqueue(Purchase(txn.spotPriceAtSale, txn.quantity, txn.subtotal))
+		self.purchases.append(txn)
 
 	def _handleSaleTxn(self, txn: CoinbaseTransaction) -> dict:
 		"""Adjust balance from the current sale transaction."""
 		assetBalance = self._getBalance(txn.assetName)
 		costbasis = getCostBasis(assetBalance.purchases, txn)
-		# print("Cost Basis for {} is {}.".format(txn, costbasis))
 		gains = txn.total - costbasis
+		logger.debug("Cost Basis for {} is {}. Proceeds are {}".format(txn, costbasis, formatMoney(gains)))
 		sale = {
 			'DateSold': txn.timestamp,
 			'LastAcquired': assetBalance.lastAcquiredDate,
@@ -103,24 +108,42 @@ class CoinbaseAccount:
 
 	def load_transactions(self, csvFilePath):
 		"""Read the Coinbase transactions CSV and load them into memory."""
-		self.transactions = []
-
 		with open(csvFilePath, 'r') as csvfile:
 			filecontent = csv.reader(csvfile)
-			linenum = 0
-			for row in filecontent:
-				linenum += 1
-				if linenum == 1:
+			for i, row in enumerate(filecontent):
+				if i == 0:
 					continue # skip headers
 				self.transactions.append(CoinbaseTransaction(*row))
 
+	def reconcile(self):
+		"""Sort all transactions chronologically and organize them by taxable event."""
 		def getTimestamp(txn):
 			return txn.timestamp
-
+		
 		self.transactions.sort(key=getTimestamp)
 
 		for txn in self.transactions:
 			self.trackTransaction(txn)
+
+class CoinbasePro():
+	def __init__(self, coinbase: CoinbaseAccount) -> None:
+		self.coinbase = coinbase
+
+	def load_transactions_from_fills(self, csv_path):
+		"""Load transactions from a CoinbasePro 'fills' csv file."""
+		with open(csv_path, 'r') as csvfile:
+			reader = csv.reader(csvfile)
+			for i, row in enumerate(reader):
+				if i == 0:
+					continue
+				self.coinbase.transactions.append(CoinbaseProFill(*row))
+	
+	def load_transactions_from_account(self, csv_path):
+		with open(csv_path, 'r') as csvfile:
+			reader = csv.reader(csvfile)
+			for row in reader:
+				if row[1] == "withdrawal": # deposit == receive?
+					self.coinbase.transactions.append(CoinbaseProAccountHistory(*row))
 
 class SalesDecorator():
 	"""

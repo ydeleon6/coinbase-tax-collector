@@ -50,3 +50,10 @@ def test_purchases_lifo_costbasis():
     
     assert costBasis == 350
     assert purchases.length == 1
+
+def test_purchases_missing_txns():
+    asset = "BTC"
+    fees = 5.00
+    
+    sale = CoinbaseTransaction(datetime.now(), "Sell", asset,\
+        amountSold, "USD", 600, 900, 900, 0, "")

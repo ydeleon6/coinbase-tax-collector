@@ -10,8 +10,9 @@ WEIGHTED_AVERAGE_METHOD = 3 # Allowed outside the U.S.
 logger = logging.getLogger("models")
 
 class CoinbaseTransaction:
-	"""Represents a transaction in Coinbase."""
+	"""Represents a taxable transaction in Coinbase."""
 	def __init__(self, timestamp, txnType, assetName, quantity, currency, spotPrice, subtotal, total, fees, notes):
+		"""Create a new coinbase transaction"""
 		if quantity == '' or quantity is None:
 			quantity = '0'
 		if spotPrice == '' or spotPrice is None:
@@ -29,17 +30,15 @@ class CoinbaseTransaction:
 		self.type = txnType
 		self.assetName = assetName
 		self.spotPriceCurrency = currency
-		self.quantity = float(quantity)
+		self.quantity = abs(float(quantity))
 		self.spotPriceAtSale = float(spotPrice)
 		self.subtotal = float(subtotal)
-		self.total = float(total)
+		self.total = abs(float(total))
 		self.fees = float(fees)
 		self.notes = notes
 
 	def __str__(self) -> str:
-		return """
-		[{type}] {quantity} {assetName} @ ${spotPriceAtSale} per {assetName} | ${subtotal} + {fees} in fees
-		""".format(**(self.__dict__))
+		return ("[{type}] {quantity} {assetName} @ ${spotPriceAtSale} per {assetName}").format(**(self.__dict__))
 
 	def getTransactionsFromNotes(self):
 		"""
@@ -58,6 +57,40 @@ class CoinbaseTransaction:
 		buyTxn = CoinbaseTransaction(self.timestamp, 'ConvertBuy', groups[3], buyQty, 'USD', buyPriceAtConversion, self.subtotal, self.total, 0, '')
 		return (sellTxn, buyTxn)
 
+# portfolio,trade id,product,side,created at,size,size unit,price,fee,total,price/fee/total unit
+class CoinbaseProFill(CoinbaseTransaction):
+	"""Tracks a filled market order on CoinbasePro."""
+	def __init__(self,portfolio,trade_id,product,side,created_at,size,size_unit,price,fee,total,currency) -> None:
+		self.portfolio = portfolio
+		self.trade_id = trade_id
+		self.pool = product
+		txnType = ''
+		if side == 'BUY':
+			txnType = 'Buy'
+		elif side == 'SELL':
+			txnType = 'Sell'
+		else:
+			txnType = side
+		timestamp = datetime.strptime(created_at,'%Y-%m-%dT%H:%M:%S.%fZ')
+		super().__init__(timestamp,txnType,size_unit,size,currency,price,'',total,fee,'')
+
+# portfolio,type,time,amount,balance,amount/balance unit,transfer id,trade id,order id
+class CoinbaseProAccountHistory(CoinbaseTransaction):
+	def __init__(self,portfolio,type,time,amount,balance,unit,transfer_id,trade_id,order_id) -> None:
+		self.portfolio = portfolio
+		# self.deposit doesn't help us at this time.
+		txnType = ''
+		if type == 'match':
+			#TODO: look at fills / timestamp to confirm which way money went. 
+			pass
+		elif type == 'withdrawal':
+			txnType = 'Send'
+		timestamp = datetime.strptime(time,'%Y-%m-%dT%H:%M:%S.%fZ')
+		# I shouldn't care about how much the price of something was if I sent it
+		# between wallets, I want to base it on roughly how much I paid for it 
+		# initially.
+		super().__init__(timestamp, txnType, unit, amount,'USD',0,0,0,0,'')
+
 class CryptoAssetBalance:
 	"""Track the current account balance of CryptoCurrency for a given asset."""
 	def __init__(self, assetName, costBasisSetting = 0):
@@ -67,20 +100,22 @@ class CryptoAssetBalance:
 		self.lastKnownPurchasePrice = 0
 		self.costBasisSetting =  costBasisSetting
 		self.purchases = PurchasesQueue(assetName, costBasisSetting)
+		self.balance = 0.0
 
-	@property
-	def balance(self):
-		return self.current_balance
+	# @property
+	# def balance(self):
+	# 	return self.current_balance
 
-	@balance.setter
-	def balance(self, bal):
-		new_balance = self.current_balance + bal
-		if new_balance < 0:
-			logger.warn("Cannot lower %s below 0 by %f", self.assetName, new_balance)
-			raise ValueError("Cannot reduce balance below 0 on Coinbase.")
-		else:
-			logger.warn("Increasing %s balance by %f", self.assetName, bal)
-		self.current_balance += bal
+	# @balance.setter
+	# def balance(self, bal):
+	# 	logger.debug(bal)
+	# 	new_balance = self.current_balance + bal
+	# 	if new_balance < 0:
+	# 		logger.warn("Cannot lower %s below 0 by %f", self.assetName, new_balance)
+	# 		raise ValueError("Cannot reduce balance below 0 on Coinbase.")
+	# 	else:
+	# 		logger.debug("Increasing %s balance by %d", self.assetName, bal)
+	# 	self.current_balance += bal
 
 class Queue():
 	"""Using Python Lists as a FIFO Queue"""
@@ -128,7 +163,6 @@ class Purchase:
 			self.subtotal = realSubTotal
 
 class PurchasesQueue(Queue):
-
 	"""Tracks all historical purchases for a specific Crypto asset."""
 	def __init__(self, assetName, costBasisSetting):
 		super().__init__(costBasisSetting)
