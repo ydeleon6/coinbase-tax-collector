@@ -41,7 +41,6 @@ account.load_transactions(csvFilePath)
 
 coinbasePro = CoinbasePro(account)
 coinbasePro.load_transactions_from_fills(r'/Users/ydeleon/Downloads/coinbase-pro-fills.csv')
-# coinbasePro.load_transactions_from_account(r'/Users/ydeleon/Downloads/coinbase-pro-account.csv')
 account.reconcile()
 
 csvWriter = TaxableSalesCsvWriter(CSV_OUTPUT_PATH, account.sales[0].keys())

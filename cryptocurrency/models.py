@@ -1,6 +1,7 @@
 import re
 import logging
 from datetime import datetime
+from enum import StrEnum
 
 FIFO = 0 # First in, first out
 LIFO = 1 # Last in, first out
@@ -8,6 +9,18 @@ SPID_METHOD = 2
 WEIGHTED_AVERAGE_METHOD = 3 # Allowed outside the U.S.
 
 logger = logging.getLogger("models")
+
+class TransactionType(StrEnum):
+	"""All currently known Coinbase Transaction Types."""
+	BUY = 'Buy'
+	SELL = 'Sell'
+	SEND = 'Send'
+	RECEIVE = 'Receive'
+	LEARN = 'Learning Reward'
+	EARN = 'Coinbase Earn'
+	CONVERT = 'Convert'
+	TRADE = 'Advanced Trade Sell'
+	REWARDS = 'Rewards'
 
 class CoinbaseTransaction:
 	"""Represents a taxable transaction in Coinbase."""
@@ -91,32 +104,6 @@ class CoinbaseProAccountHistory(CoinbaseTransaction):
 		# initially.
 		super().__init__(timestamp, txnType, unit, amount,'USD',0,0,0,0,'')
 
-class CryptoAssetBalance:
-	"""Track the current account balance of CryptoCurrency for a given asset."""
-	def __init__(self, assetName, costBasisSetting = 0):
-		self.assetName = assetName
-		self.current_balance = 0.0
-		self.lastAcquiredDate = ''
-		self.lastKnownPurchasePrice = 0
-		self.costBasisSetting =  costBasisSetting
-		self.purchases = PurchasesQueue(assetName, costBasisSetting)
-		self.balance = 0.0
-
-	# @property
-	# def balance(self):
-	# 	return self.current_balance
-
-	# @balance.setter
-	# def balance(self, bal):
-	# 	logger.debug(bal)
-	# 	new_balance = self.current_balance + bal
-	# 	if new_balance < 0:
-	# 		logger.warn("Cannot lower %s below 0 by %f", self.assetName, new_balance)
-	# 		raise ValueError("Cannot reduce balance below 0 on Coinbase.")
-	# 	else:
-	# 		logger.debug("Increasing %s balance by %d", self.assetName, bal)
-	# 	self.current_balance += bal
-
 class Queue():
 	"""Using Python Lists as a FIFO Queue"""
 	def __init__(self, queueMethod = FIFO):
@@ -157,6 +144,8 @@ class Purchase:
 	def __init__(self, costOfUnit, quantity, realSubTotal = None) -> None:
 		self.pricePerUnit = costOfUnit
 		self.quantity = quantity
+		self.timestamp = datetime.now()
+
 		if realSubTotal is None:
 			self.subtotal = costOfUnit * quantity
 		else: # used to override a purchase price when things are given to you like rewards, income, wallet transfers, etc.
@@ -164,6 +153,8 @@ class Purchase:
 
 class PurchasesQueue(Queue):
 	"""Tracks all historical purchases for a specific Crypto asset."""
+	queue: list[Purchase]
+
 	def __init__(self, assetName, costBasisSetting):
 		super().__init__(costBasisSetting)
 		self.assetName = assetName
@@ -175,3 +166,31 @@ class PurchasesQueue(Queue):
 		for item in self.queue:
 			total += item.quantity
 		return total
+
+class CryptoAssetBalance:
+	"""Track the current account balance of CryptoCurrency for a given asset."""
+	def __init__(self, assetName, costBasisSetting = 0):
+		self.assetName = assetName
+		self.current_balance = 0.0
+		self.lastAcquiredDate = ''
+		self.lastKnownPurchasePrice = 0
+		self.costBasisSetting =  costBasisSetting
+		self.purchases = PurchasesQueue(assetName, costBasisSetting)
+		self.withdrawals = PurchasesQueue(assetName, costBasisSetting)
+		self.deposits = PurchasesQueue(assetName, costBasisSetting)
+		self.balance = 0.0
+
+	# @property
+	# def balance(self):
+	# 	return self.current_balance
+
+	# @balance.setter
+	# def balance(self, bal):
+	# 	logger.debug(bal)
+	# 	new_balance = self.current_balance + bal
+	# 	if new_balance < 0:
+	# 		logger.warn("Cannot lower %s below 0 by %f", self.assetName, new_balance)
+	# 		raise ValueError("Cannot reduce balance below 0 on Coinbase.")
+	# 	else:
+	# 		logger.debug("Increasing %s balance by %d", self.assetName, bal)
+	# 	self.current_balance += bal

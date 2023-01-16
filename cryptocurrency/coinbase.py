@@ -15,7 +15,7 @@ class CoinbaseAccount:
 		self.purchases = []
 		self.tax_method = tax_method
 
-	def _getBalance(self, assetName: str):
+	def _getBalance(self, assetName: str) -> CryptoAssetBalance:
 		"""Look up the given asset's balance and return it."""
 		assetBalance = self.balances.get(assetName)
 		if assetBalance is None:
@@ -35,9 +35,9 @@ class CoinbaseAccount:
 			self._handleBuyTxn(txn)
 		elif txn.type == 'Sell' or txn.type == 'ConvertSell' or txn.type == 'Advanced Trade Sell':
 			self._handleSaleTxn(txn)
-		elif txn.type == 'Receive' or txn.type == 'Learning Reward':
+		elif txn.type == 'Receive' or txn.type == 'Learning Reward' or txn.type == 'Coinbase Earn' :
 			self._handleReceive(txn)
-		elif txn.type == 'Coinbase Earn' or txn.type == 'Rewards Income':
+		elif txn.type == 'Rewards Income':
 			self._handleIncome(txn)
 		elif txn.type == 'Send' or txn.type == 'CardSpend':
 			self._handleSend(txn)
@@ -56,8 +56,10 @@ class CoinbaseAccount:
 	def _handleSaleTxn(self, txn: CoinbaseTransaction) -> dict:
 		"""Adjust balance from the current sale transaction."""
 		assetBalance = self._getBalance(txn.assetName)
-		costbasis = getCostBasis(assetBalance.purchases, txn)
-		gains = txn.total - costbasis
+		(costbasis, qtyRemaining) = getCostBasis(assetBalance.purchases, txn)
+		if qtyRemaining > 0:
+			return
+		gains = txn.subtotal - costbasis # if subtotal is 0
 		logger.debug("Cost Basis for {} is {}. Proceeds are {}".format(txn, costbasis, formatMoney(gains)))
 		sale = {
 			'DateSold': txn.timestamp,
@@ -82,7 +84,7 @@ class CoinbaseAccount:
 		assetBalance = self._getBalance(txn.assetName)
 		assetBalance.balance += txn.quantity
 		income = {
-			'DateReceived': formatTimeString(txn.timestamp),
+			'DateReceived': txn.timestamp,
 			'Quantity': txn.quantity,
 			'Asset': txn.assetName,
 			'SpotPrice': txn.spotPriceAtSale,
@@ -96,15 +98,28 @@ class CoinbaseAccount:
 	def _handleSend(self, txn: CoinbaseTransaction):
 		"""Adjust balance based on the amount sent out from Coinbase."""
 		assetBalance = self._getBalance(txn.assetName)
-		assetBalance.balance -= txn.quantity
+		(costbasis, unaccounted) = getCostBasis(assetBalance.purchases, txn) # move txn to another queue so you can add it back l8r.
+		remaining = txn.quantity - unaccounted
+		if unaccounted > 0:
+			assetBalance.balance = 0
+			return
+			#raise Exception("Unable to send more crypto than I have.")
+		assetBalance.withdrawals.enqueue(Purchase(txn.spotPriceAtSale, remaining, costbasis))
 
 	def _handleReceive(self, txn: CoinbaseTransaction):
 		"""Adjust balance based on the amount received into Coinbase from outside."""
 		assetBalance = self._getBalance(txn.assetName)
-		assetBalance.balance += txn.quantity
 		assetBalance.lastAcquiredDate = formatTimeString(txn.timestamp)
-		# assetBalance.lastKnownPurchasePrice = round(txn.spotPriceAtSale, 3) # You need to determine if it's your wallet. If not, track this. Else 
-		assetBalance.purchases.enqueue(Purchase(txn.spotPriceAtSale, txn.quantity, 0.0))
+		# Taking crypto out of exchanges into your own wallets is not a taxable event.
+		# IMO, since I did not buy / sell all the crypto in my wallet I should be able use
+		# oldest/highest/first matching Purchase.
+		# check any previous withdrawals.
+		(costBasis, qtyRemaining) = getCostBasis(assetBalance.withdrawals, txn)
+		if qtyRemaining > 0:
+			# logger.warn("Cannot account for %f %s. Check for missing txns.", qtyRemaining, txn.assetName)
+			costBasis = txn.quantity * txn.spotPriceAtSale
+		if costBasis > 0:
+			assetBalance.purchases.enqueue(Purchase(txn.spotPriceAtSale, txn.quantity, costBasis))
 
 	def load_transactions(self, csvFilePath):
 		"""Read the Coinbase transactions CSV and load them into memory."""
@@ -117,7 +132,7 @@ class CoinbaseAccount:
 
 	def reconcile(self):
 		"""Sort all transactions chronologically and organize them by taxable event."""
-		def getTimestamp(txn):
+		def getTimestamp(txn: CoinbaseTransaction):
 			return txn.timestamp
 		
 		self.transactions.sort(key=getTimestamp)

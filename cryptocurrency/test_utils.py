@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 from cryptocurrency.utils import PurchasesQueue, getCostBasis
 from cryptocurrency.models import Queue, FIFO, LIFO, Purchase, \
@@ -33,27 +34,39 @@ def test_purchases_fifo_costbasis():
     amountSold = 1.5
     sale = CoinbaseTransaction(datetime.now(), "Sell", asset,\
         amountSold, "USD", 600, 900, 900, 0, "")
-    costBasis = getCostBasis(purchases, sale)
+    (costBasis, qtyRemaining) = getCostBasis(purchases, sale)
     
     assert costBasis == 250
     assert purchases.length == 1
+    assert qtyRemaining == 0
 
 def test_purchases_lifo_costbasis():
     asset = "BTC"
-    purchases = PurchasesQueue("BTC", LIFO)
+    purchases = PurchasesQueue(asset, LIFO)
     purchases.enqueue(Purchase(100, 1))
     purchases.enqueue(Purchase(300, 1))
     amountSold = 1.5
     sale = CoinbaseTransaction(datetime.now(), "Sell", asset,\
         amountSold, "USD", 600, 900, 900, 0, "")
-    costBasis = getCostBasis(purchases, sale)
+    (costBasis, qtyRemaining) = getCostBasis(purchases, sale)
     
     assert costBasis == 350
     assert purchases.length == 1
+    assert qtyRemaining == 0
 
-def test_purchases_missing_txns():
-    asset = "BTC"
-    fees = 5.00
-    
+def test_purchases_missing_txns(caplog):
+    asset = "ETH"
+    amountSold = 3
+    purchases = PurchasesQueue(asset, FIFO)
+    purchases.enqueue(Purchase(1000, 1))
+    purchases.enqueue(Purchase(3000, 1))
+
     sale = CoinbaseTransaction(datetime.now(), "Sell", asset,\
-        amountSold, "USD", 600, 900, 900, 0, "")
+        amountSold, "USD", 600, 900, 900, 0, "") 
+
+    with caplog.at_level(logging.ERROR):
+        (costBasis, qtyRemaining) = getCostBasis(purchases, sale)
+
+    assert 'Looking for 1.0 ETH in your purchases/receives. '+\
+        'Found 2.0 of 3.0 so far. Perhaps missing a transaction?' in caplog.text
+    assert qtyRemaining == 1
