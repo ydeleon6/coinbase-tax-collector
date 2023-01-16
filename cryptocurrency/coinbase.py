@@ -1,60 +1,9 @@
-import re
 import csv
-from datetime import datetime
-from .utils import FIFO, Purchase, PurchasesQueue
+import logging
+from cryptocurrency.models import CryptoAssetBalance, CoinbaseTransaction, Purchase, FIFO, CoinbaseProFill, CoinbaseProAccountHistory
+from cryptocurrency.utils import formatMoney, formatTimeString, getLossOrGainText, getCostBasis
 
-
-class CoinbaseTransaction:
-	"""Represents a transaction in Coinbase."""
-	def __init__(self, timestamp, type, assetName, quantity, currency, spotPrice, subtotal, total, fees, notes):
-		if quantity == '' or quantity is None:
-			quantity = '0'
-		if spotPrice == '' or spotPrice is None:
-			spotPrice = '0'
-		if subtotal == '' or subtotal is None:
-			subtotal = '0'
-		if total == '' or total is None:
-			total = '0'
-		if fees == '' or fees is None:
-			fees = '0'
-		self.timestamp = timestamp
-		self.type = type
-		self.assetName = assetName
-		self.spotPriceCurrency = currency
-		self.quantity = float(quantity)
-		self.spotPriceAtSale = float(spotPrice)
-		self.subtotal = float(subtotal)
-		self.total = float(total)
-		self.fees = float(fees)
-		self.notes = notes
-
-	def getTransactionsFromNotes(self):
-		"""
-		Read the notes field and build additional transactions if applicable.
-		"""
-		#TODO: Do we switch the regex? Can we get info from other transaction types?
-		CONVERSION_REGEX = r"^Converted ([0-9,]*.[0-9]*) ([A-Z]*) to ([0-9,]*.[0-9]*) ([A-Z]*)"
-		matches = re.search(CONVERSION_REGEX, self.notes)
-		groups = matches.groups()
-		splitFee = self.fees / 2
-		sellQty = groups[0].replace(',', '')
-		sellTxn = CoinbaseTransaction(self.timestamp, 'Sell', groups[1], sellQty, 'USD', self.spotPriceAtSale, self.subtotal, self.total, splitFee, '')
-		# calculate Buy price by using buy quantity, sell subtotal
-		buyQty = groups[2].replace(',', '')
-		buyPriceAtConversion = self.subtotal / float(buyQty)
-		buyTxn = CoinbaseTransaction(self.timestamp, 'Buy', groups[3], buyQty, 'USD', buyPriceAtConversion, self.subtotal, self.total, splitFee, '')
-		return (sellTxn, buyTxn)
-
-
-class CryptoAssetBalance:
-	"""Track the current account balance of CryptoCurrency for a given asset."""
-	def __init__(self, assetName, costBasisSetting = 0):
-		self.assetName = assetName
-		self.balance = 0.0
-		self.lastAcquiredDate = ''
-		self.lastKnownPurchasePrice = 0
-		self.costBasisSetting =  costBasisSetting
-		self.purchases = PurchasesQueue(assetName, costBasisSetting)
+logger = logging.getLogger("coinbase")
 
 class CoinbaseAccount:
 	"""Tracks your total coinbase history and all the CryptoCurrency balances."""
@@ -62,9 +11,11 @@ class CoinbaseAccount:
 		self.balances = dict()
 		self.sales = []
 		self.income = []
+		self.transactions = []
+		self.purchases = []
 		self.tax_method = tax_method
 
-	def _getBalance(self, assetName: str):
+	def _getBalance(self, assetName: str) -> CryptoAssetBalance:
 		"""Look up the given asset's balance and return it."""
 		assetBalance = self.balances.get(assetName)
 		if assetBalance is None:
@@ -72,24 +23,21 @@ class CoinbaseAccount:
 			self.balances[assetName] = assetBalance
 		return assetBalance
 
-	def _formatTimeString(self, timestr):
-		"""Format the timestamp into mm/DD/YYYY HH:MM:SS format."""
-		poop = datetime.strptime(timestr,'%Y-%m-%dT%H:%M:%SZ')
-		return poop.strftime("%m/%d/%Y %H:%M")
-
+	# TODO: This could be visitor pattern maybe? Each txn. can have a TransactionVisitor,
+	# .     and the TransactionVisitor would accept sale/buy/etc... actions
 	def trackTransaction(self, txn: CoinbaseTransaction):
 		"""Track the transaction and adjust any running totals, quantities, etc as necessary."""
 		if txn.type == 'Convert':
 			innerTxns = txn.getTransactionsFromNotes()
 			self._handleSaleTxn(innerTxns[0])
 			self._handleBuyTxn(innerTxns[1])
-		elif txn.type == 'Buy':
+		elif txn.type == 'Buy' or txn.type=='ConvertBuy' or txn.type == 'CardBuyBack':
 			self._handleBuyTxn(txn)
-		elif txn.type == 'Sell':
+		elif txn.type == 'Sell' or txn.type == 'ConvertSell' or txn.type == 'Advanced Trade Sell':
 			self._handleSaleTxn(txn)
-		elif txn.type == 'Receive':
+		elif txn.type == 'Receive' or txn.type == 'Learning Reward' or txn.type == 'Coinbase Earn' :
 			self._handleReceive(txn)
-		elif txn.type == 'Coinbase Earn' or txn.type == 'Rewards Income':
+		elif txn.type == 'Rewards Income':
 			self._handleIncome(txn)
 		elif txn.type == 'Send' or txn.type == 'CardSpend':
 			self._handleSend(txn)
@@ -100,17 +48,21 @@ class CoinbaseAccount:
 		"""Adjust balance from the current buy transaction."""
 		assetBalance = self._getBalance(txn.assetName)
 		assetBalance.balance += txn.quantity
-		assetBalance.lastAcquiredDate = self._formatTimeString(txn.timestamp)
-		assetBalance.lastKnownPurchasePrice = round(txn.spotPriceAtSale, 3)
+		assetBalance.lastAcquiredDate = formatTimeString(txn.timestamp)
+		assetBalance.lastKnownPurchasePrice = txn.spotPriceAtSale
 		assetBalance.purchases.enqueue(Purchase(txn.spotPriceAtSale, txn.quantity, txn.subtotal))
+		self.purchases.append(txn)
 
 	def _handleSaleTxn(self, txn: CoinbaseTransaction) -> dict:
 		"""Adjust balance from the current sale transaction."""
 		assetBalance = self._getBalance(txn.assetName)
-		costbasis = assetBalance.purchases.getCostBasis(txn.quantity) + txn.fees
-		gains = txn.total - costbasis
+		(costbasis, qtyRemaining) = getCostBasis(assetBalance.purchases, txn)
+		if qtyRemaining > 0:
+			return
+		gains = txn.subtotal - costbasis # if subtotal is 0
+		logger.debug("Cost Basis for {} is {}. Proceeds are {}".format(txn, costbasis, formatMoney(gains)))
 		sale = {
-			'DateSold': self._formatTimeString(txn.timestamp),
+			'DateSold': txn.timestamp,
 			'LastAcquired': assetBalance.lastAcquiredDate,
 			'LastPurchasePrice': assetBalance.lastKnownPurchasePrice,
 			'Quantity': txn.quantity,
@@ -132,7 +84,7 @@ class CoinbaseAccount:
 		assetBalance = self._getBalance(txn.assetName)
 		assetBalance.balance += txn.quantity
 		income = {
-			'DateReceived': self._formatTimeString(txn.timestamp),
+			'DateReceived': txn.timestamp,
 			'Quantity': txn.quantity,
 			'Asset': txn.assetName,
 			'SpotPrice': txn.spotPriceAtSale,
@@ -143,84 +95,100 @@ class CoinbaseAccount:
 		self.income.append(income)
 		assetBalance.purchases.enqueue(Purchase(txn.spotPriceAtSale, txn.quantity, 0.0))
 
-
 	def _handleSend(self, txn: CoinbaseTransaction):
 		"""Adjust balance based on the amount sent out from Coinbase."""
 		assetBalance = self._getBalance(txn.assetName)
-		assetBalance.balance -= txn.quantity
+		(costbasis, unaccounted) = getCostBasis(assetBalance.purchases, txn) # move txn to another queue so you can add it back l8r.
+		remaining = txn.quantity - unaccounted
+		if unaccounted > 0:
+			assetBalance.balance = 0
+			return
+			#raise Exception("Unable to send more crypto than I have.")
+		assetBalance.withdrawals.enqueue(Purchase(txn.spotPriceAtSale, remaining, costbasis))
 
 	def _handleReceive(self, txn: CoinbaseTransaction):
 		"""Adjust balance based on the amount received into Coinbase from outside."""
 		assetBalance = self._getBalance(txn.assetName)
-		assetBalance.balance += txn.quantity
-		assetBalance.lastAcquiredDate = self._formatTimeString(txn.timestamp)
-		# assetBalance.lastKnownPurchasePrice = round(txn.spotPriceAtSale, 3) # You need to determine if it's your wallet. If not, track this. Else 
-		assetBalance.purchases.enqueue(Purchase(txn.spotPriceAtSale, txn.quantity, 0.0))
+		assetBalance.lastAcquiredDate = formatTimeString(txn.timestamp)
+		# Taking crypto out of exchanges into your own wallets is not a taxable event.
+		# IMO, since I did not buy / sell all the crypto in my wallet I should be able use
+		# oldest/highest/first matching Purchase.
+		# check any previous withdrawals.
+		(costBasis, qtyRemaining) = getCostBasis(assetBalance.withdrawals, txn)
+		if qtyRemaining > 0:
+			# logger.warn("Cannot account for %f %s. Check for missing txns.", qtyRemaining, txn.assetName)
+			costBasis = txn.quantity * txn.spotPriceAtSale
+		if costBasis > 0:
+			assetBalance.purchases.enqueue(Purchase(txn.spotPriceAtSale, txn.quantity, costBasis))
 
 	def load_transactions(self, csvFilePath):
 		"""Read the Coinbase transactions CSV and load them into memory."""
-		self.transactions = []
-
 		with open(csvFilePath, 'r') as csvfile:
 			filecontent = csv.reader(csvfile)
-			linenum = 0
-			for row in filecontent:
-				linenum += 1
-				if linenum == 1:
+			for i, row in enumerate(filecontent):
+				if i == 0:
 					continue # skip headers
 				self.transactions.append(CoinbaseTransaction(*row))
 
-		def getTimestamp(txn):
+	def reconcile(self):
+		"""Sort all transactions chronologically and organize them by taxable event."""
+		def getTimestamp(txn: CoinbaseTransaction):
 			return txn.timestamp
-
+		
 		self.transactions.sort(key=getTimestamp)
 
 		for txn in self.transactions:
 			self.trackTransaction(txn)
 
-def formatMoney(amount):
-	isNegative = amount < 0
-	moneyText = "{:,.2f}".format(abs(amount))
+class CoinbasePro():
+	def __init__(self, coinbase: CoinbaseAccount) -> None:
+		self.coinbase = coinbase
 
-	sign = ""
-	if isNegative:
-		sign = "-"
-	return "{}${}".format(sign, moneyText)
+	def load_transactions_from_fills(self, csv_path):
+		"""Load transactions from a CoinbasePro 'fills' csv file."""
+		with open(csv_path, 'r') as csvfile:
+			reader = csv.reader(csvfile)
+			for i, row in enumerate(reader):
+				if i == 0:
+					continue
+				self.coinbase.transactions.append(CoinbaseProFill(*row))
+	
+	def load_transactions_from_account(self, csv_path):
+		with open(csv_path, 'r') as csvfile:
+			reader = csv.reader(csvfile)
+			for row in reader:
+				if row[1] == "withdrawal": # deposit == receive?
+					self.coinbase.transactions.append(CoinbaseProAccountHistory(*row))
 
-def getLossOrGainText(amount):
-	resultAction = "Gains"
-	if amount < 0:
-		resultAction = "Losses"
-	return resultAction
-
-class SalesVisitor():
+class SalesDecorator():
 	"""
-	The base class for visiting the TaxableSales object.
+	The base class for decorating the TaxableSales dictionary.
 	"""
-	def accept(self, sale):
+	def execute(self, sale: dict):
+		"""Execute an action on the sale."""
 		pass
 
 	def shutdown(self):
+		"""Shutdown any necessary resources."""
 		pass
 
 class CoinbaseTaxCalculator():
-	visitors: list[SalesVisitor]
+	decorators: list[SalesDecorator]
 	account = CoinbaseAccount
 
-	def __init__(self, account: CoinbaseAccount, visitors) -> None:
+	def __init__(self, account: CoinbaseAccount, decorators: list[SalesDecorator]) -> None:
 		self.account = account
-		self.visitors = visitors
+		self.decorators = decorators
 
 	def calculate(self):
 		for sale in self.account.sales:
-			self.visit(sale)
+			self.decorate(sale)
 
-	def visit(self, sale: dict):
-		for visitor in self.visitors:
-			visitor.accept(sale)
+	def decorate(self, sale: dict):
+		for decorator in self.decorators:
+			decorator.execute(sale)
 
-
-class TaxableSalesCsvWriter(SalesVisitor):
+class TaxableSalesCsvWriter(SalesDecorator):
 	"""
 	Write taxable sales to a CSV file.
 	"""
@@ -229,18 +197,18 @@ class TaxableSalesCsvWriter(SalesVisitor):
 		self.writer = csv.DictWriter(self.output_file, fieldnames=columnNames, dialect='unix')
 		self.writer.writeheader()
 
-	def accept(self, sale):
+	def execute(self, sale):
 		self.writer.writerow(sale)
 
 	def shutdown(self):
 		if not self.output_file.closed:
 			self.output_file.close()
 
-class ConsoleOutputWriter(SalesVisitor):
+class ConsoleOutputWriter(SalesDecorator):
 	"""
 	Output the taxable sale to the console.
 	"""
-	def accept(self, sale):
+	def execute(self, sale):
 		updatedSale = dict(**sale)
 		updatedSale['LossOrGain'] = getLossOrGainText(sale['Gains'])
 		updatedSale['LastPurchasePrice']  = formatMoney(sale['LastPurchasePrice'])
@@ -249,6 +217,7 @@ class ConsoleOutputWriter(SalesVisitor):
 		updatedSale['Total']  = formatMoney(sale['Total'])
 		updatedSale['Gains']  = formatMoney(sale['Gains'])
 		updatedSale['Fees']  = formatMoney(sale['Fees'])
+		updatedSale['DateSold'] = formatTimeString(sale['DateSold'])
 
 		print()
 		print("Transaction Date: {DateSold}".format(**updatedSale))
@@ -258,9 +227,16 @@ class ConsoleOutputWriter(SalesVisitor):
 		print("You sold {Quantity} of {Asset} for {Total} {Currency} (fees: {Fees}). {LossOrGain} are {Gains} {Currency}"\
 			.format(**updatedSale))
 
-class TotalCapitalGainsTaxCalculator(SalesVisitor):
+class TotalCapitalGainsTaxCalculator(SalesDecorator):
 	def __init__(self) -> None:
 		self.totalGains = 0.0
+		self.taxByYear = dict()
 
-	def accept(self, sale):
+	def execute(self, sale):
 		self.totalGains += sale['Gains']
+		taxYear = sale['DateSold'].year
+		
+		if self.taxByYear.get(taxYear) is None:
+			self.taxByYear[taxYear] = 0.0
+		
+		self.taxByYear[taxYear] += sale['Gains']
